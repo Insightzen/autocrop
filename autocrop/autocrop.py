@@ -112,7 +112,7 @@ def crop(image, fwidth=500, fheight=500):
     return image
 
 
-def main(path, fheight, fwidth):
+def main(path, fheight, fwidth, output_dir):
     """Given path containing image files to process, will
     1) copy them to `path/bkp`, and
     2) create face-cropped versions and place them in `path/crop`
@@ -139,7 +139,8 @@ def main(path, fheight, fwidth):
                 continue
 
             # Write cropfile
-            cropfilename = '{0}'.format(str(file))
+            cropfilename = output_dir + '{0}'.format(str(file))
+            print (cropfilename)
             cv2.imwrite(cropfilename, image)
 
             # Move files to /crop
@@ -164,8 +165,9 @@ def cli():
                         type=int, default=500, help=help_d['height'])
     parser.add_argument('-v', '--version', action='version',
                         version='%(prog)s version {}'.format(__version__))
+    parser.add_argument('-o', '--output_dir', default='./cropped_images')
 
     args = parser.parse_args()
     print('Processing images in folder:', args.path)
 
-    main(args.path, args.height, args.width)
+    main(args.path, args.height, args.width, args.output_dir)
