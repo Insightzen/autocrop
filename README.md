@@ -21,26 +21,18 @@ Perfect for batch work for ID cards or profile picture processing for your websi
 
 ## Installation
 Simple! In your command line, type:
-
-~~~python
-pip install autocrop
-~~~
+```
+cd ~
+git clone https://github.com/Insightzen/autocrop.git
+cd autocrop
+pip install .
+```
 
 ### Gotchas
 Autocrop uses OpenCV to perform face detection, which is installed through binary [wheels](http://pythonwheels.com/). If you *already* have OpenCV 3+ installed, you may wish to uninstall the additional OpenCV installation: `pip uninstall opencv-python`.
 
 ### conda
 Development of a `conda-forge` package for the [Anaconda Python distribution](https://www.anaconda.com/download/) is also currently slated for development. Please leave feedback on [issue #7](https://github.com/leblancfg/autocrop/issues/7) if you are insterested in helping out.
-
-### Installing directly
-In some cases, you may wish the package directly, instead of through [PyPI](https://pypi.python.org/pypi):
-
-~~~
-cd ~
-git clone https://github.com/leblancfg/autocrop
-cd autocrop
-pip install .
-~~~
 
 ## Requirements
 Best practice for your projects is of course to [use virtual environments](http://docs.python-guide.org/en/latest/dev/virtualenvs/). At the very least, you will need to [have pip installed](https://pip.pypa.io/en/stable/installing/).
