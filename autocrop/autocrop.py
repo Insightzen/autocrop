@@ -60,9 +60,10 @@ def crop(image, fwidth=500, fheight=500):
     if len(image.shape) > 2:
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     else:
+        print ("Gray Scale image with shape: ", image.shape)
         gray = image
     # Scale the image
-    height, width = (image.shape[:2])
+    height, width = (image.shape[0], image.shape[1])
     minface = int(np.sqrt(height*height + width*width) / 8)
 
     # Create the haar cascade
@@ -133,6 +134,7 @@ def main(path, fheight, fwidth, output_dir):
 
             # Perform the actual crop
             input = cv2.imread(file)
+            print (input.shape)
             if input is None:
                 continue
             image = crop(input, fwidth, fheight)
