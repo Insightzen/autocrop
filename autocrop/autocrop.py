@@ -148,14 +148,22 @@ def main(path, fheight, fwidth, output_dir):
 
         for file in files_grabbed:
             print('processing file {}.'.format(str(file)))
-            # Copy to /bkp
-            shutil.copy(file, 'bkp')
+
+            if not os.path.exists(output_dir):
+                os.mkdir(output_dir)
+            
+            cropfilename = os.path.join(output_dir, str(file))
+
+            if os.path.isfile(cropfilename):
+                continue
 
             # Perform the actual crop
             input = cv2.imread(file)
-            print (input.shape)
+
             if input is None:
                 continue
+
+            print(input.shape)
             image = crop(input, fwidth, fheight)
 
             # Make sure there actually was a face in there
@@ -165,16 +173,7 @@ def main(path, fheight, fwidth, output_dir):
                 continue
 
             # Write cropfile
-            if not os.path.exists(output_dir):
-                # print("making dir")
-                os.mkdir(output_dir)
-
-            cropfilename = os.path.join(output_dir, str(file))
-            # print(cropfilename)
             cv2.imwrite(cropfilename, image)
-
-            # Move files to /crop
-            # shutil.copy(cropfilename, 'crop')
 
     # Stop and print timer
     print(' {0} files have been cropped'.format(len(files_grabbed) - errors))
