@@ -149,7 +149,7 @@ def main(path, fheight, fwidth, output_dir):
             cv2.imwrite(cropfilename, image)
 
             # Move files to /crop
-            shutil.move(cropfilename, 'crop')
+            # shutil.move(cropfilename, 'crop')
 
     # Stop and print timer
     print(' {0} files have been cropped'.format(len(files_grabbed) - errors))
