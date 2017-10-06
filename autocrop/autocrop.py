@@ -57,9 +57,10 @@ def crop(image, fwidth=500, fheight=500):
 
     ndarray, int, int -> ndarray
     """
-
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
+    if len(image.shape) > 2:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = image
     # Scale the image
     height, width = (image.shape[:2])
     minface = int(np.sqrt(height*height + width*width) / 8)
