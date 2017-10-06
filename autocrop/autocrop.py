@@ -120,6 +120,7 @@ def main(path, fheight, fwidth, output_dir):
     2) create face-cropped versions and place them in `path/crop`
     """
     errors = 0
+    print("Hi crop")
     with cd(path):
         files_grabbed = []
         for files in INPUT_FILETYPES:
