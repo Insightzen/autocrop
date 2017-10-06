@@ -57,6 +57,7 @@ def crop(image, fwidth=500, fheight=500):
 
     ndarray, int, int -> ndarray
     """
+
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
     # Scale the image
@@ -140,7 +141,7 @@ def main(path, fheight, fwidth, output_dir):
 
             # Write cropfile
             cropfilename = output_dir + '{0}'.format(str(file))
-            print (cropfilename)
+            print(cropfilename)
             cv2.imwrite(cropfilename, image)
 
             # Move files to /crop
