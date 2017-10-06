@@ -165,9 +165,8 @@ def cli():
                         type=int, default=500, help=help_d['height'])
     parser.add_argument('-v', '--version', action='version',
                         version='%(prog)s version {}'.format(__version__))
-    parser.add_argument('-o', '--output_dir', default='./cropped_images')
 
     args = parser.parse_args()
     print('Processing images in folder:', args.path)
 
-    main(args.path, args.height, args.width, args.output_dir)
+    main(args.path, args.height, args.width, './cropped_images')
