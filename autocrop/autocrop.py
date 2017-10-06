@@ -133,6 +133,8 @@ def main(path, fheight, fwidth, output_dir):
 
             # Perform the actual crop
             input = cv2.imread(file)
+            if input is None:
+                continue
             image = crop(input, fwidth, fheight)
 
             # Make sure there actually was a face in there
@@ -149,7 +151,7 @@ def main(path, fheight, fwidth, output_dir):
             cv2.imwrite(cropfilename, image)
 
             # Move files to /crop
-            # shutil.move(cropfilename, 'crop')
+            shutil.copy(cropfilename, 'crop')
 
     # Stop and print timer
     print(' {0} files have been cropped'.format(len(files_grabbed) - errors))
@@ -174,4 +176,4 @@ def cli():
     args = parser.parse_args()
     print('Processing images in folder:', args.path)
 
-    main(args.path, args.height, args.width, './cropped_images')
+    main(args.path, args.height, args.width, '/home/ubuntu/insightzen_playground/autocrop/cropped_images')
