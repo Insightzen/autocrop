@@ -57,62 +57,81 @@ def crop(image, fwidth=500, fheight=500):
 
     ndarray, int, int -> ndarray
     """
-    if len(image.shape) > 2:
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    else:
-        print ("Gray Scale image with shape: ", image.shape)
-        gray = image
-    # Scale the image
-    height, width = (image.shape[0], image.shape[1])
-    minface = int(np.sqrt(height*height + width*width) / 8)
-
-    # Create the haar cascade
-    faceCascade = cv2.CascadeClassifier(cascPath)
-
-    # ====== Detect faces in the image ======
-    faces = faceCascade.detectMultiScale(
-        gray,
-        scaleFactor=1.1,
-        minNeighbors=5,
-        minSize=(minface, minface),
-        flags=cv2.CASCADE_FIND_BIGGEST_OBJECT | cv2.CASCADE_DO_ROUGH_SEARCH
-    )
-
-    # Handle no faces
-    if len(faces) == 0:
-        return None
-
-    # Make padding from probable biggest face
-    x, y, w, h = faces[-1]
-    pad = h / FACE_RATIO
-
-    # Make sure padding is contained within picture
-    # decreases pad by 6% increments to fit crop into image.
-    # Can lead to very small faces.
-    while True:
-        if (y-2*pad < 0 or y+h+pad > height or
-                int(x-1.5*pad) < 0 or x+w+int(1.5*pad) > width):
-            pad = (1 - INCREMENT) * pad
+    try:
+        if len(image.shape) > 2:
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         else:
-            break
+            print ("Gray Scale image with shape: ", image.shape)
+            gray = image
+        # Scale the image
+        height, width = (image.shape[0], image.shape[1])
+        # print (height, width)
+        minface = int(np.sqrt(height*height + width*width) / 8)
+        # print (minface)
 
-    # Crop the image from the original
-    h1 = int(x-1.5*pad)
-    h2 = int(x+w+1.5*pad)
-    v1 = int(y-2*pad)
-    v2 = int(y+h+pad)
-    image = image[v1:v2, h1:h2]
+        # Create the haar cascade
+        faceCascade = cv2.CascadeClassifier(cascPath)
+        # print (faceCascade)
 
-    # Resize the damn thing
-    image = cv2.resize(image, (fheight, fwidth), interpolation=cv2.INTER_AREA)
+        # ====== Detect faces in the image ======
+        faces = faceCascade.detectMultiScale(
+            gray,
+            scaleFactor=1.1,
+            minNeighbors=5,
+            minSize=(minface, minface),
+            flags=cv2.CASCADE_FIND_BIGGEST_OBJECT | cv2.CASCADE_DO_ROUGH_SEARCH
+        )
+        # print (faces)
 
-    # ====== Dealing with underexposition ======
-    if fixexp:
-        # Check if under-exposed
-        uexp = cv2.calcHist([gray], [0], None, [256], [0, 256])
-        if sum(uexp[-26:]) < GAMMA_THRES * sum(uexp):
-            image = gamma(image, GAMMA)
-    return image
+        # Handle no faces
+        if len(faces) == 0:
+            return None
+
+        # Make padding from probable biggest face
+        x, y, w, h = faces[-1]
+        pad = h / FACE_RATIO
+
+        # print (x,y,w,h)
+        # print ("pad", pad)
+
+        # Make sure padding is contained within picture
+        # decreases pad by 6% increments to fit crop into image.
+        # Can lead to very small faces.
+        count = 0
+        while True:
+            print ("y-2*pad: ", y - 2 * pad)
+            if ((y-2*pad < 0 or y+h+pad > height or
+                    int(x-1.5*pad) < 0 or x+w+int(1.5*pad) > width)) and count <= 15000:
+                pad = (1 - INCREMENT) * pad
+                # print ("dpad", pad)
+                # print ("count", count)
+                count += 1
+            else:
+                break
+
+        # Crop the image from the original
+        h1 = int(x-1.5*pad)
+        h2 = int(x+w+1.5*pad)
+        v1 = int(y-2*pad)
+        v2 = int(y+h+pad)
+        image = image[v1:v2, h1:h2]
+
+        # cv2.imshow("image", image)
+        # cv2.waitkey(0)
+
+        # Resize the damn thing
+        image = cv2.resize(image, (fheight, fwidth), interpolation=cv2.INTER_AREA)
+
+        # ====== Dealing with underexposition ======
+        if fixexp:
+            # Check if under-exposed
+            uexp = cv2.calcHist([gray], [0], None, [256], [0, 256])
+            if sum(uexp[-26:]) < GAMMA_THRES * sum(uexp):
+                image = gamma(image, GAMMA)
+        # cv2.imshow("imag2", image)
+        return image
+    except:
+        return None
 
 
 def main(path, fheight, fwidth, output_dir):
@@ -147,11 +166,11 @@ def main(path, fheight, fwidth, output_dir):
 
             # Write cropfile
             if not os.path.exists(output_dir):
-                print("making dir")
+                # print("making dir")
                 os.mkdir(output_dir)
 
             cropfilename = os.path.join(output_dir, str(file))
-            print(cropfilename)
+            # print(cropfilename)
             cv2.imwrite(cropfilename, image)
 
             # Move files to /crop
