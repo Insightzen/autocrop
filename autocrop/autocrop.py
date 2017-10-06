@@ -142,7 +142,9 @@ def main(path, fheight, fwidth, output_dir):
                 continue
 
             # Write cropfile
-            cropfilename = output_dir + '{0}'.format(str(file))
+            if not os.path.exists(output_dir):
+                os.mkdir(output_dir)
+            cropfilename = output_dir + str(file)
             print(cropfilename)
             cv2.imwrite(cropfilename, image)
 
