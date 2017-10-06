@@ -145,13 +145,15 @@ def main(path, fheight, fwidth, output_dir):
 
             # Write cropfile
             if not os.path.exists(output_dir):
+                print("making dir")
                 os.mkdir(output_dir)
-            cropfilename = output_dir + str(file)
+
+            cropfilename = os.path.join(output_dir, str(file))
             print(cropfilename)
             cv2.imwrite(cropfilename, image)
 
             # Move files to /crop
-            shutil.copy(cropfilename, 'crop')
+            # shutil.copy(cropfilename, 'crop')
 
     # Stop and print timer
     print(' {0} files have been cropped'.format(len(files_grabbed) - errors))
