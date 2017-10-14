@@ -8,9 +8,7 @@ import cv2
 import glob
 import numpy as np
 import os
-import shutil
 import sys
-
 from .__version__ import __version__
 
 fixexp = True  # Flag to fix underexposition
@@ -26,7 +24,7 @@ FACE_RATIO = 6
 cascFile = 'haarcascade_frontalface_default.xml'
 d = os.path.dirname(sys.modules['autocrop'].__file__)
 cascPath = os.path.join(d, cascFile)
-
+print (d)
 
 # Define directory change within context
 @contextmanager
@@ -63,15 +61,16 @@ def crop(image, fwidth=500, fheight=500):
         else:
             print ("Gray Scale image with shape: ", image.shape)
             gray = image
+
         # Scale the image
         height, width = (image.shape[0], image.shape[1])
-        # print (height, width)
+
         minface = int(np.sqrt(height*height + width*width) / 8)
-        # print (minface)
+
 
         # Create the haar cascade
         faceCascade = cv2.CascadeClassifier(cascPath)
-        # print (faceCascade)
+
 
         # ====== Detect faces in the image ======
         faces = faceCascade.detectMultiScale(
@@ -81,7 +80,6 @@ def crop(image, fwidth=500, fheight=500):
             minSize=(minface, minface),
             flags=cv2.CASCADE_FIND_BIGGEST_OBJECT | cv2.CASCADE_DO_ROUGH_SEARCH
         )
-        # print (faces)
 
         # Handle no faces
         if len(faces) == 0:
@@ -91,20 +89,14 @@ def crop(image, fwidth=500, fheight=500):
         x, y, w, h = faces[-1]
         pad = h / FACE_RATIO
 
-        # print (x,y,w,h)
-        # print ("pad", pad)
-
         # Make sure padding is contained within picture
         # decreases pad by 6% increments to fit crop into image.
         # Can lead to very small faces.
         count = 0
         while True:
-            print ("y-2*pad: ", y - 2 * pad)
             if ((y-2*pad < 0 or y+h+pad > height or
                     int(x-1.5*pad) < 0 or x+w+int(1.5*pad) > width)) and count <= 15000:
                 pad = (1 - INCREMENT) * pad
-                # print ("dpad", pad)
-                # print ("count", count)
                 count += 1
             else:
                 break
@@ -116,9 +108,6 @@ def crop(image, fwidth=500, fheight=500):
         v2 = int(y+h+pad)
         image = image[v1:v2, h1:h2]
 
-        # cv2.imshow("image", image)
-        # cv2.waitkey(0)
-
         # Resize the damn thing
         image = cv2.resize(image, (fheight, fwidth), interpolation=cv2.INTER_AREA)
 
@@ -128,7 +117,6 @@ def crop(image, fwidth=500, fheight=500):
             uexp = cv2.calcHist([gray], [0], None, [256], [0, 256])
             if sum(uexp[-26:]) < GAMMA_THRES * sum(uexp):
                 image = gamma(image, GAMMA)
-        # cv2.imshow("imag2", image)
         return image
     except:
         return None
@@ -153,6 +141,7 @@ def main(path, fheight, fwidth, output_dir):
                 os.mkdir(output_dir)
             
             cropfilename = os.path.join(output_dir, str(file))
+            print ("Cropfilename: {}".format(cropfilename))
 
             if os.path.isfile(cropfilename):
                 continue
@@ -163,7 +152,6 @@ def main(path, fheight, fwidth, output_dir):
             if input is None:
                 continue
 
-            print(input.shape)
             image = crop(input, fwidth, fheight)
 
             # Make sure there actually was a face in there
@@ -184,7 +172,9 @@ def cli():
             'description':'Automatically crops faces from batches of pictures',
             'path':'Folder where images to crop are located. Default=photos/',
             'width':'Width of cropped files in px. Default=500',
-            'height':'Height of cropped files in px. Default=500'}
+            'height':'Height of cropped files in px. Default=500',
+            'output_dir': 'Folder to save the cropped images'
+    }
 
     parser = argparse.ArgumentParser(description=help_d['description'])
     parser.add_argument('-p', '--path', default='photos', help=help_d['path'])
@@ -194,8 +184,11 @@ def cli():
                         type=int, default=500, help=help_d['height'])
     parser.add_argument('-v', '--version', action='version',
                         version='%(prog)s version {}'.format(__version__))
+    parser.add_argument('-o', '--output_dir', type=str,
+                        default=os.path.join(d, 'cropped_images'),
+                        help='path to save the output cropped files')
 
     args = parser.parse_args()
     print('Processing images in folder:', args.path)
 
-    main(args.path, args.height, args.width, '/home/ubuntu/insightzen_playground/autocrop/cropped_images')
+    main(args.path, args.height, args.width, args.output_dir)
