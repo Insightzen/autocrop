@@ -10,7 +10,7 @@ def getmd5(filename):
     return m.hexdigest()
 
 
-def main():
+def remove_duplicate_files():
     # path = raw_input("path: ")
     path = './'
     all_size = {}
@@ -39,7 +39,7 @@ def main():
     time_last = end - start
     print('Total files:', total_file)
     print('Deleted files:', total_delete)
-    print('Time using:', time_last, '秒')
+    print('Time using:', time_last, 's')
 
 
 if __name__ == '__main__':
