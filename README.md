@@ -18,7 +18,7 @@ cd ~
 git clone https://github.com/Insightzen/autocrop.git
 cd autocrop
 pip install --upgrade .
-cp remove_duplicate_files.py PATH_PHOTOS
+cp remove_duplicate_files.py PATH_PHOTOS/remove_duplicate_files.py
 ```
 Then cd into PATH_PHOTOS 
 ```
