@@ -2,6 +2,10 @@
 
 from __future__ import print_function
 
+# import imutils
+from imutils.face_utils import FaceAligner
+from imutils.face_utils import rect_to_bb
+import dlib
 import face_recognition
 import argparse
 from contextlib import contextmanager
@@ -12,7 +16,6 @@ import os
 import sys
 from .__version__ import __version__
 
-fixexp = True  # Flag to fix underexposition
 INPUT_FILETYPES = ['*.jpg', '*.jpeg', '*.bmp', '*.dib', '*.jp2',
                    '*.png', '*.webp', '*.pbm', '*.pgm', '*.ppm',
                    '*.sr', '*.ras', '*.tiff', '*.tif']
@@ -22,15 +25,31 @@ GAMMA = 0.90
 FACE_RATIO = 6
 
 # Load XML Resource
-cascFile = 'haarcascade_frontalface_default.xml'
 d = os.path.dirname(sys.modules['autocrop'].__file__)
-cascPath = os.path.join(d, cascFile)
 print(d)
+cascFile = 'haarcascade_frontalface_default.xml'
+cascFile1 = 'haarcascade_frontalface_alt.xml'
+cascFile3 = 'haarcascade_frontalface_alt_tree.xml'
+shape_predictor = 'shape_predictor_68_face_landmarks.dat'
 
-# Define directory change within context
+cascPath = os.path.join(d, cascFile)
+cascPath1 = os.path.join(d, cascFile1)
+cascPath3 = os.path.join(d, cascFile3)
+
+# Create the haar cascade
+faceCascade = cv2.CascadeClassifier(cascPath)
+faceCascade1 = cv2.CascadeClassifier(cascPath1)
+faceCascade3 = cv2.CascadeClassifier(cascPath3)
+
+# dlib algorithm with align
+shape_predictor_path = os.path.join(d, shape_predictor)
+detector = dlib.get_frontal_face_detector()
+predictor = dlib.shape_predictor(shape_predictor_path)
+fa = FaceAligner(predictor, desiredFaceWidth=500)
 
 
 @contextmanager
+# Define directory change within context
 def cd(newdir):
     prevdir = os.getcwd()
     os.chdir(os.path.expanduser(newdir))
@@ -46,10 +65,26 @@ def gamma(img, correction):
     return np.uint8(img * 255)
 
 
-def detect_cv(image, minSize):
-    # Create the haar cascade
-    faceCascade = cv2.CascadeClassifier(cascPath)
+def re_expose(image):
+    # Check if under-exposed
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    uexp = cv2.calcHist([gray], [0], None, [256], [0, 256])
+    if sum(uexp[-26:]) < GAMMA_THRES * sum(uexp):
+        image = gamma(image, GAMMA)
 
+
+def detect_dlib(image, gray):
+    rects = detector(gray, 2)
+    if len(rects) == 0:
+        return None
+    else:
+        image = fa.align(image, gray, rects[-1])
+        return image
+
+
+def detect_cv(image):
+    height, width = (image.shape[0], image.shape[1])
+    minSize = int(np.sqrt(height * height + width * width) / 8)
     # ====== Detect faces in the image ======
     faces = faceCascade.detectMultiScale(
         image,
@@ -58,9 +93,25 @@ def detect_cv(image, minSize):
         minSize=(minSize, minSize),
         flags=cv2.CASCADE_FIND_BIGGEST_OBJECT | cv2.CASCADE_DO_ROUGH_SEARCH
     )
-
     if len(faces) == 0:
-        # Handle no faces
+        # print('xml1')
+        faces = faceCascade1.detectMultiScale(
+            image,
+            scaleFactor=1.2,
+            minNeighbors=3,
+            minSize=(minSize, minSize),
+            flags=cv2.CASCADE_FIND_BIGGEST_OBJECT | cv2.CASCADE_DO_ROUGH_SEARCH
+        )
+    if len(faces) == 0:
+        # print('xml3')
+        faces = faceCascade3.detectMultiScale(
+            image,
+            scaleFactor=1.2,
+            minNeighbors=3,
+            minSize=(minSize, minSize),
+            flags=cv2.CASCADE_FIND_BIGGEST_OBJECT | cv2.CASCADE_DO_ROUGH_SEARCH
+        )
+    if len(faces) == 0:
         return None
     else:
         return faces[-1]
@@ -89,43 +140,47 @@ def crop(image, fwidth=500, fheight=500):
     ndarray, int, int -> ndarray
     """
     try:
-        if len(image.shape) > 2:
-            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        else:
-            print("Gray Scale image with shape: ", image.shape)
-            gray = image
+        # ===smooth===
+        # image = cv2.bilateralFilter(image, 9, 75, 75)
 
-        # Histogram Equalization
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        # ===Histogram Equalization===
         gray = cv2.equalizeHist(gray)
 
-        # Scale the image
-        height, width = (image.shape[0], image.shape[1])
-        minface = int(np.sqrt(height * height + width * width) / 8)
+        # ===try opencv===
+        rectangle = detect_cv(gray)
 
-        rectangle = detect_cv(gray, minface)
-        # if rectangle is None:
-        #     # try another way
-        #     rectangle = detect_fr(gray)
+        # ===try dlib===
         if rectangle is None:
-            # try another way with color image
+            output = detect_dlib(image, gray)
+            if output is not None:
+                re_expose(output)
+                return output
+
+        # ===try fr===
+        if rectangle is None:
             rectangle = detect_fr(image)
+
         if rectangle is None:
             # print('rot90')
             image = np.rot90(image)
-            rectangle = detect_fr(image)
+            gray = np.rot90(gray)
+            rectangle = detect_cv(gray)
+
         if rectangle is None:
             # print('rot270')
             image = np.rot90(image, 2)
-            rectangle = detect_fr(image)
+            gray = np.rot90(gray, 2)
+            rectangle = detect_cv(gray)
+
+        # ===no face detected===
         if rectangle is None:
             return None
 
         x, y, w, h = rectangle
         height, width = (image.shape[0], image.shape[1])
-
         # Make padding from probable biggest face
         pad = h / FACE_RATIO
-
         # Make sure padding is contained within picture
         # decreases pad by 6% increments to fit crop into image.
         # Can lead to very small faces.
@@ -137,24 +192,17 @@ def crop(image, fwidth=500, fheight=500):
                 count += 1
             else:
                 break
-
         # Crop the image from the original
         h1 = int(x - 1.5 * pad)
         h2 = int(x + w + 1.5 * pad)
         v1 = int(y - 2 * pad)
         v2 = int(y + h + pad)
         image = image[v1:v2, h1:h2]
-
         # Resize the damn thing
         image = cv2.resize(image, (fheight, fwidth), interpolation=cv2.INTER_AREA)
 
-        # ====== Dealing with underexposition ======
-        if fixexp:
-            # Check if under-exposed
-            uexp = cv2.calcHist([gray], [0], None, [256], [0, 256])
-            if sum(uexp[-26:]) < GAMMA_THRES * sum(uexp):
-                image = gamma(image, GAMMA)
         return image
+
     except:
         return None
 
@@ -165,7 +213,7 @@ def main(path, fheight, fwidth, output_dir):
     2) create face-cropped versions and place them in `path/crop`
     """
     errors = 0
-    print("Hi crop")
+    print("Hi, start cropping...")
     with cd(path):
         files_grabbed = []
         for files in INPUT_FILETYPES:
