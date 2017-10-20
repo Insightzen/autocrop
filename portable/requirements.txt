@@ -1,0 +1,5 @@
+numpy==1.12.1
+opencv-python==3.3.0.10
+face_recognition==0.1.0
+imutils==0.4.3
+dlib==19.7.0
